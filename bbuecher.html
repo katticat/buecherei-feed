@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Bilderbücher – Bücherei Obernau</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #fff;
+    }
+    h1 {
+      font-size: 1.4rem;
+    }
+    ul {
+      padding-left: 1.2em;
+    }
+    li {
+      margin: 0.4em 0;
+    }
+    a {
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <!--<h1>Aktuelle Bilderbücher</h1>-->
+  <ul id="liste">
+    <li>Lade Liste …</li>
+  </ul>
+
+  <script>
+    fetch("/feed/bilderbuecher")
+      .then(response => response.text())
+      .then(xmlText => {
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(xmlText, "text/xml");
+        const items = xml.querySelectorAll("item");
+
+        const ul = document.getElementById("liste");
+        ul.innerHTML = "";
+
+        items.forEach(item => {
+          const title = item.querySelector("title")?.textContent || "Ohne Titel";
+          const link  = item.querySelector("link")?.textContent || "#";
+
+          const li = document.createElement("li");
+          const a  = document.createElement("a");
+
+          a.href = link;
+          a.textContent = title;
+          a.target = "_blank";
+          a.rel = "noopener";
+
+          li.appendChild(a);
+          ul.appendChild(li);
+        });
+
+        if (items.length === 0) {
+          ul.innerHTML = "<li>Keine Einträge gefunden.</li>";
+        }
+      })
+      .catch(() => {
+        document.getElementById("liste").innerHTML =
+          "<li>Liste konnte nicht geladen werden.</li>";
+      });
+  </script>
+</body>
+</html>
