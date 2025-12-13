@@ -81,7 +81,7 @@
       }
     }
 
-  fetch("feed/weihnachten/")
+  fetch("/feed/weihnachten")
     .then(r => r.text())
     .then(xmlText => {
       const xml = new DOMParser().parseFromString(xmlText, "text/xml");
