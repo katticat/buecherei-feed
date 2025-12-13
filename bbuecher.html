@@ -27,6 +27,35 @@
     a:hover {
       text-decoration: underline;
     }
+    li { list-style: none; }
+
+    .item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    
+    .cover {
+      width: 60px;
+      min-width: 60px;
+    }
+    
+    .cover img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+      display: block;
+    }
+    
+    .text .title {
+      font-weight: 600;
+    }
+    
+    .text .meta {
+      font-size: 0.95em;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
   </style>
 </head>
 
@@ -35,12 +64,22 @@
   <ul id="liste">
     <li>Lade Liste …</li>
   </ul>
-
+  
   <script>
-  function stripHtml(html) {
-    const doc = new DOMParser().parseFromString(html || "", "text/html");
-    return (doc.body.textContent || "").trim();
-  }
+    function stripHtml(html) {
+      const doc = new DOMParser().parseFromString(html || "", "text/html");
+      return (doc.body.textContent || "").trim();
+    }
+
+    async function fetchCover(detailUrl) {
+      try {
+        const r = await fetch("/cover?u=" + encodeURIComponent(detailUrl));
+        const j = await r.json();
+        return j.cover || "";
+      } catch {
+        return "";
+      }
+    }
 
   fetch("/feed/bilderbuecher")
     .then(r => r.text())
@@ -57,8 +96,6 @@
 
         let author = "";
         let bookTitle = rawTitle;
-
-        // Trennen an erstem Doppelpunkt
         const idx = rawTitle.indexOf(":");
         if (idx > -1) {
           author = rawTitle.slice(0, idx).trim();
@@ -68,35 +105,57 @@
         const descRaw = item.querySelector("description")?.textContent || "";
         const description = stripHtml(descRaw);
 
+        // --- DOM bauen (erstmal ohne Cover, damit es sofort angezeigt wird)
         const li = document.createElement("li");
 
-        // Buchtitel (Hauptlink)
+        const wrapper = document.createElement("div");
+        wrapper.className = "item";
+
+        const coverBox = document.createElement("div");
+        coverBox.className = "cover";
+        // Platzhalter: erstmal leer
+        wrapper.appendChild(coverBox);
+
+        const text = document.createElement("div");
+        text.className = "text";
+
         const a = document.createElement("a");
+        a.className = "title";
         a.href = link || "#";
         a.textContent = bookTitle || "Ohne Titel";
         a.target = "_blank";
         a.rel = "noopener";
-        li.appendChild(a);
+        text.appendChild(a);
 
-        // Autor
         if (author) {
           const meta = document.createElement("div");
-          meta.style.fontSize = "0.95em";
-          meta.style.opacity = "0.8";
+          meta.className = "meta";
           meta.textContent = "Autor: " + author;
-          li.appendChild(meta);
+          text.appendChild(meta);
         }
 
-        // Beschreibung
         if (description) {
-          const p = document.createElement("div");
-          p.style.fontSize = "0.95em";
-          p.style.marginTop = "4px";
-          p.textContent = description;
-          li.appendChild(p);
+          const d = document.createElement("div");
+          d.className = "meta";
+          d.textContent = description;
+          text.appendChild(d);
         }
 
+        wrapper.appendChild(text);
+        li.appendChild(wrapper);
         ul.appendChild(li);
+
+        // --- Cover nachladen (asynchron)
+        if (link) {
+          fetchCover(link).then(coverUrl => {
+            if (!coverUrl) return;
+            const img = document.createElement("img");
+            img.src = coverUrl;
+            img.alt = "";
+            img.loading = "lazy";
+            coverBox.appendChild(img);
+          });
+        }
       }
 
       if (items.length === 0) {
@@ -108,5 +167,3 @@
         "<li>Liste konnte nicht geladen werden.</li>";
     });
 </script>
-</body>
-</html>
