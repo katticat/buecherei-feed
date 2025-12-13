@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bilderbücher – Liste</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    .wrap { padding: 12px; }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <ul id="list"><li>Lade …</li></ul>
+  </div>
+
+  <script>
+    (async () => {
+      const ul = document.getElementById("list");
+      try {
+        const r = await fetch("/feed/bilderbuecher");
+        const xmlText = await r.text();
+        const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+
+        const items = [...doc.querySelectorAll("item")].slice(0, 15);
+        ul.innerHTML = "";
+        for (const it of items) {
+          const title = (it.querySelector("title")?.textContent || "").trim();
+          const link  = (it.querySelector("link")?.textContent || "").trim();
+
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.href = link || "#";
+          a.textContent = title || "Ohne Titel";
+          a.target = "_blank";
+          a.rel = "noopener";
+          li.appendChild(a);
+          ul.appendChild(li);
+        }
+
+        if (!items.length) ul.innerHTML = "<li>Keine Einträge gefunden.</li>";
+      } catch (e) {
+        ul.innerHTML = "<li>Liste konnte gerade nicht geladen werden.</li>";
+      }
+    })();
+  </script>
+</body>
+</html>
