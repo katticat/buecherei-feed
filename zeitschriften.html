@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Bilderbücher – Bücherei Obernau</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #fff;
+    }
+    h1 {
+      font-size: 1.4rem;
+    }
+    ul {
+      padding-left: 1.2em;
+    }
+    li {
+      margin: 0.9em 0;
+    }
+    a {
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    li { list-style: none; }
+
+    .item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    
+    .cover {
+      width: 120px;
+      min-width: 120px;
+    }
+    
+    .cover img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+      display: block;
+    }
+    
+    .text .title {
+      font-weight: 600;
+    }
+    
+    .text .meta {
+      font-size: 0.95em;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <!--<h1>Aktuelle Zeitschriften</h1>-->
+  <ul id="liste">
+    <li>Lade Liste …</li>
+  </ul>
+  
+  <script>
+    function stripHtml(html) {
+      const doc = new DOMParser().parseFromString(html || "", "text/html");
+      return (doc.body.textContent || "").trim();
+    }
+
+    async function fetchCover(detailUrl) {
+      try {
+        const r = await fetch("/cover?u=" + encodeURIComponent(detailUrl)  + "&nocache=1");
+        const j = await r.json();
+        return j.cover || "";
+      } catch {
+        return "";
+      }
+    }
+
+  fetch("/feed/zeitschriften")
+    .then(r => r.text())
+    .then(xmlText => {
+      const xml = new DOMParser().parseFromString(xmlText, "text/xml");
+      const items = [...xml.querySelectorAll("item")].slice(0, 15);
+
+      const ul = document.getElementById("liste");
+      ul.innerHTML = "";
+
+      for (const item of items) {
+        const rawTitle = (item.querySelector("title")?.textContent || "").trim();
+        const link     = (item.querySelector("link")?.textContent || "").trim();
+
+        let author = "";
+        let bookTitle = rawTitle;
+        const idx = rawTitle.indexOf(":");
+        if (idx > -1) {
+          author = rawTitle.slice(0, idx).trim();
+          bookTitle = rawTitle.slice(idx + 1).trim();
+        }
+
+        const descRaw = item.querySelector("description")?.textContent || "";
+        const description = stripHtml(descRaw);
+
+        // --- DOM bauen (erstmal ohne Cover, damit es sofort angezeigt wird)
+        const li = document.createElement("li");
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "item";
+
+        const coverBox = document.createElement("div");
+        coverBox.className = "cover";
+        // Platzhalter: erstmal leer
+        wrapper.appendChild(coverBox);
+
+        const text = document.createElement("div");
+        text.className = "text";
+
+        const a = document.createElement("a");
+        a.className = "title";
+        a.href = link || "#";
+        a.textContent = bookTitle || "Ohne Titel";
+        a.target = "_blank";
+        a.rel = "noopener";
+        text.appendChild(a);
+
+        if (author) {
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = "Autor: " + author;
+          text.appendChild(meta);
+        }
+
+        if (description) {
+          const d = document.createElement("div");
+          d.className = "meta";
+          d.textContent = description;
+          text.appendChild(d);
+        }
+
+        wrapper.appendChild(text);
+        li.appendChild(wrapper);
+        ul.appendChild(li);
+
+        // --- Cover nachladen (asynchron)
+        if (link) {
+          fetchCover(link).then(coverUrl => {
+            if (!coverUrl) return;
+            const img = document.createElement("img");
+            img.src = coverUrl;
+            img.alt = "";
+            img.loading = "lazy";
+            coverBox.appendChild(img);
+          });
+        }
+      }
+
+      if (items.length === 0) {
+        ul.innerHTML = "<li>Keine Einträge gefunden.</li>";
+      }
+    })
+    .catch(() => {
+      document.getElementById("liste").innerHTML =
+        "<li>Liste konnte nicht geladen werden.</li>";
+    });
+</script>
