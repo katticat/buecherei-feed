@@ -27,7 +27,8 @@ export async function onRequestGet({ request }) {
 
   if (isbn.length === 10 || isbn.length === 13) {
     // Open Library Cover (Medium)
-    const candidate = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+    //const candidate = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+    const candidate = `https://buchhandel-rest.prod.kubernetes.vlb.de/cover/${isbn}/${isbn}-cover-m.jpg`;
 
     // Existenz prüfen, sonst bleibt cover leer
     const head = await fetch(candidate, { method: "HEAD" });
