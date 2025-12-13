@@ -73,7 +73,7 @@
 
     async function fetchCover(detailUrl) {
       try {
-        const r = await fetch("/cover?u=" + encodeURIComponent(detailUrl));
+        const r = await fetch("/cover?u=" + encodeURIComponent(detailUrl)  + "&debug=1&nocache=1");
         const j = await r.json();
         return j.cover || "";
       } catch {
