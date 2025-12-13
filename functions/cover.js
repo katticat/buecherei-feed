@@ -19,28 +19,22 @@ export async function onRequestGet({ request }) {
   if (!res.ok) return new Response("Upstream error", { status: 502 });
   const html = await res.text();
 
-  // 1) Erst versuchen: og:image (wenn vorhanden)
-  let m =
-    html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i) ||
-    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i);
+  // ISBN suchen (10 oder 13-stellig, oft mit Bindestrichen)
+  const m = html.match(/ISBN\s*([0-9Xx\- ]{10,20})/);
+  const isbn = (m ? m[1] : "").replace(/[^0-9Xx]/g, "").toUpperCase();
 
-  // 2) Dann: erstes <img ...> (Fallback)
-  if (!m) {
-    m = html.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+  let cover = "";
+
+  if (isbn.length === 10 || isbn.length === 13) {
+    // Open Library Cover (Medium)
+    const candidate = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+
+    // Existenz prüfen, sonst bleibt cover leer
+    const head = await fetch(candidate, { method: "HEAD" });
+    if (head.ok) cover = candidate;
   }
 
-  let img = m ? m[1] : "";
-
-  // Relative URLs auflösen
-  if (img) {
-    try {
-      img = new URL(img, targetUrl).toString();
-    } catch {
-      img = "";
-    }
-  }
-
-  return new Response(JSON.stringify({ cover: img }), {
+  return new Response(JSON.stringify({ cover, isbn }), {
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "public, max-age=86400", // 1 Tag Cache
