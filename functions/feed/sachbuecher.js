@@ -1,5 +1,5 @@
 export async function onRequestGet() {
-  const FEED_URL = "https://www.bibkat.de/buecherei-obernau/medialist/sachbucher-fur-erwachsene/";
+  const FEED_URL = "https://www.bibkat.de/buecherei-obernau/feed/sachbucher-fur-erwachsene/";
 
   const upstream = await fetch(FEED_URL, {
     headers: { "User-Agent": "BuechereiObernau-FeedProxy/1.0" },
